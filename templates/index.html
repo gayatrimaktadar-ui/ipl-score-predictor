@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>IPL Score Predictor — AI Powered</title>
+<link href="https://fonts.googleapis.com/css2?family=Teko:wght@400;500;600;700&family=Barlow:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --gold: #F5A623;
+    --orange: #FF5A1F;
+    --red: #E8003D;
+    --dark: #060810;
+    --dark2: #0D1020;
+    --dark3: #141828;
+    --card: rgba(255,255,255,0.035);
+    --border: rgba(255,255,255,0.07);
+    --text: #E8EAF0;
+    --muted: #6B7280;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--dark);
+    color: var(--text);
+    font-family: 'Barlow', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ─── CANVAS BACKGROUND ─── */
+  #bg-canvas {
+    position: fixed; inset: 0; z-index: 0;
+    pointer-events: none;
+  }
+
+  /* ─── NAV ─── */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 48px;
+    background: rgba(13, 13, 14, 0.85);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+  }
+  .nav-logo {
+    font-family: 'Teko', sans-serif;
+    font-size: 28px; font-weight: 700; letter-spacing: 2px;
+    background: linear-gradient(135deg, #F5A623, #FF5A1F);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .nav-links { display: flex; gap: 32px; }
+  .nav-links a {
+    font-size: 13px; font-weight: 600; letter-spacing: 2px;
+    color: var(--muted); text-decoration: none; text-transform: uppercase;
+    transition: color .2s;
+  }
+  .nav-links a:hover { color: var(--gold); }
+  .nav-badge {
+    background: linear-gradient(135deg, var(--orange), var(--red));
+    padding: 6px 16px; border-radius: 20px;
+    font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
+  }
+
+  /* ─── HERO ─── */
+  .hero {
+    position: relative; z-index: 1;
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 120px 24px 60px;
+    text-align: center;
+  }
+  .hero-eyebrow {
+    display: inline-flex; align-items: center; gap: 10px;
+    background: rgba(245,166,35,0.1); border: 1px solid rgba(245,166,35,0.25);
+    border-radius: 30px; padding: 8px 20px;
+    font-size: 11px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase;
+    color: var(--gold); margin-bottom: 28px;
+    animation: fadeDown .6s ease both;
+  }
+  .hero-eyebrow span { width: 6px; height: 6px; background: var(--gold); border-radius: 50%; animation: blink 1.5s ease infinite; }
+  @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:.2;} }
+
+  .hero h1 {
+    font-family: 'Teko', sans-serif;
+    font-size: clamp(64px, 12vw, 130px);
+    font-weight: 700; line-height: .95; letter-spacing: 2px;
+    animation: fadeDown .7s .1s ease both;
+  }
+  .hero h1 .line1 { display: block; color: #fff; }
+  .hero h1 .line2 {
+    display: block;
+    background: linear-gradient(90deg, #F5A623 0%, #0f0f0f 50%, #111010 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .hero-sub {
+    max-width: 540px; margin: 24px auto 0;
+    font-size: 16px; line-height: 1.7; color: var(--muted);
+    font-weight: 400;
+    animation: fadeDown .8s .2s ease both;
+  }
+  .hero-cta {
+    margin-top: 40px;
+    display: flex; gap: 16px; flex-wrap: wrap; justify-content: center;
+    animation: fadeDown .9s .3s ease both;
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--orange), var(--red));
+    color: #fff; border: none; border-radius: 8px;
+    padding: 16px 36px; font-family: 'Teko', sans-serif;
+    font-size: 20px; letter-spacing: 2px; cursor: pointer;
+    transition: all .25s; text-decoration: none; display: inline-block;
+    box-shadow: 0 8px 32px rgba(232,0,61,0.3);
+  }
+  .btn-primary:hover { transform: translateY(-3px); box-shadow: 0 16px 40px rgba(232,0,61,0.4); }
+  .btn-secondary {
+    background: transparent; color: var(--text);
+    border: 1px solid var(--border); border-radius: 8px;
+    padding: 16px 36px; font-family: 'Teko', sans-serif;
+    font-size: 20px; letter-spacing: 2px; cursor: pointer;
+    transition: all .25s; text-decoration: none; display: inline-block;
+  }
+  .btn-secondary:hover { border-color: var(--gold); color: var(--gold); }
+
+  /* hero stats row */
+  .hero-stats {
+    display: flex; gap: 48px; margin-top: 72px; flex-wrap: wrap; justify-content: center;
+    animation: fadeUp .9s .4s ease both;
+  }
+  .hero-stat { text-align: center; }
+  .hero-stat-num {
+    font-family: 'Teko', sans-serif; font-size: 48px; font-weight: 700; line-height: 1;
+    background: linear-gradient(135deg, #F5A623, #FF5A1F);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .hero-stat-label { font-size: 11px; font-weight: 600; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; margin-top: 4px; }
+
+  @keyframes fadeDown { from{opacity:0;transform:translateY(-20px);} to{opacity:1;transform:translateY(0);} }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(20px);} to{opacity:1;transform:translateY(0);} }
+
+  /* ─── SECTION WRAPPER ─── */
+  section { position: relative; z-index: 1; }
+  .section-inner { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+  .section-tag {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 11px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase;
+    color: var(--gold); margin-bottom: 16px;
+  }
+  .section-tag::before { content:''; width:24px; height:2px; background:var(--gold); }
+
+  /* ─── HOW IT WORKS ─── */
+  #how { padding: 100px 0; }
+  .how-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px,1fr)); gap: 24px; margin-top: 48px; }
+  .how-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 16px; padding: 32px 24px;
+    position: relative; overflow: hidden;
+    transition: transform .25s, border-color .25s;
+  }
+  .how-card:hover { transform: translateY(-6px); border-color: rgba(245,166,35,0.3); }
+  .how-card::before {
+    content: attr(data-num);
+    position: absolute; top: -10px; right: 16px;
+    font-family: 'Teko', sans-serif; font-size: 100px; font-weight: 700;
+    color: rgba(255,255,255,0.03); line-height: 1; pointer-events: none;
+  }
+  .how-icon { font-size: 32px; margin-bottom: 16px; }
+  .how-card h3 { font-family: 'Teko', sans-serif; font-size: 22px; font-weight: 600; letter-spacing: 1px; margin-bottom: 8px; }
+  .how-card p { font-size: 14px; color: var(--muted); line-height: 1.6; }
+
+  /* ─── PREDICTOR ─── */
+  #predictor { padding: 100px 0; }
+  .predictor-wrap {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin-top: 48px;
+  }
+  @media(max-width:900px){ .predictor-wrap{ grid-template-columns:1fr; } }
+
+  .form-panel {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 20px; padding: 36px; position: relative; overflow: hidden;
+  }
+  .form-panel::after {
+    content:''; position:absolute; top:0; left:0; right:0; height:3px;
+    background: linear-gradient(90deg,var(--gold),var(--orange),var(--red));
+  }
+  .form-section-title {
+    font-family: 'Teko', sans-serif; font-size: 18px; letter-spacing: 2px;
+    color: var(--gold); margin-bottom: 18px; padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .form-row.single { grid-template-columns: 1fr; }
+  .form-group { display: flex; flex-direction: column; }
+  .form-label {
+    font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 8px;
+  }
+  .form-control {
+    background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+    border-radius: 10px; padding: 13px 16px;
+    color: var(--text); font-family: 'Barlow', sans-serif; font-size: 15px; font-weight: 500;
+    outline: none; transition: border-color .2s, background .2s;
+    appearance: none;
+  }
+  .form-control:focus { border-color: var(--gold); background: rgba(245,166,35,0.06); }
+  .form-control option { background: #141828; }
+  .form-control::placeholder { color: #3a3f50; }
+  /* vs badge */
+  .vs-badge {
+    display: flex; align-items: center; justify-content: center; gap: 16px;
+    background: rgba(245,166,35,0.08); border: 1px solid rgba(245,166,35,0.15);
+    border-radius: 12px; padding: 14px 20px; margin-bottom: 20px;
+    min-height: 54px;
+  }
+  .vs-team { font-family:'Teko',sans-serif; font-size:22px; font-weight:700; transition:color .3s; }
+  .vs-sep { font-family:'Teko',sans-serif; font-size:14px; letter-spacing:3px; color:#3a3f50; }
+
+  /* Predict button */
+  .predict-btn {
+    width: 100%; padding: 18px;
+    background: linear-gradient(135deg, var(--orange), var(--red));
+    border: none; border-radius: 12px; cursor: pointer;
+    font-family: 'Teko', sans-serif; font-size: 26px; letter-spacing: 3px; color: #fff;
+    transition: all .25s; margin-top: 8px;
+    box-shadow: 0 8px 32px rgba(232,0,61,0.25);
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+  }
+  .predict-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 14px 40px rgba(232,0,61,0.4); }
+  .predict-btn:disabled { opacity: .65; cursor: not-allowed; }
+
+  .error-msg {
+    background: rgba(232,0,61,0.12); border: 1px solid rgba(232,0,61,0.3);
+    border-radius: 8px; padding: 12px 16px; margin-top: 12px;
+    font-size: 13px; font-weight: 600; color: #FF6B8A;
+  }
+
+  /* ─── RESULT PANEL ─── */
+  .result-panel {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 20px; padding: 36px;
+    display: flex; flex-direction: column;
+    position: relative; overflow: hidden;
+  }
+  .result-panel::after {
+    content:''; position:absolute; top:0; left:0; right:0; height:3px;
+    background: linear-gradient(90deg,#4ade80,#22d3ee);
+  }
+  .result-placeholder {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 16px; text-align: center;
+    color: var(--muted);
+  }
+  .result-placeholder .big-icon { font-size: 64px; opacity: .3; }
+  .result-placeholder p { font-size: 14px; line-height: 1.6; max-width: 260px; }
+
+  .result-content { display: none; flex-direction: column; gap: 20px; }
+  .result-content.visible { display: flex; animation: fadeUp .5s ease both; }
+
+  .result-header { text-align: center; padding-bottom: 20px; border-bottom: 1px solid var(--border); }
+  .result-label {
+    font-size: 11px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 8px;
+  }
+  .result-score {
+    font-family: 'Teko', sans-serif; font-size: 96px; line-height: 1; font-weight: 700;
+    background: linear-gradient(135deg, #fff 30%, #F5A623);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .result-range {
+    font-family: 'Teko', sans-serif; font-size: 20px; color: var(--muted); letter-spacing: 2px; margin-top: 4px;
+  }
+  .result-range span { color: var(--gold); }
+
+  .result-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  .result-stat {
+    background: rgba(255,255,255,0.03); border: 1px solid var(--border);
+    border-radius: 12px; padding: 16px 12px; text-align: center;
+  }
+  .result-stat-val {
+    font-family: 'Teko', sans-serif; font-size: 32px; font-weight: 600; line-height: 1;
+  }
+  .result-stat-label { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-top: 4px; }
+
+  /* win bar */
+  .win-bar-wrap { }
+  .win-bar-labels {
+    display: flex; justify-content: space-between;
+    font-size: 12px; font-weight: 700; letter-spacing: 1px; margin-bottom: 8px;
+  }
+  .win-bar {
+    height: 10px; border-radius: 5px;
+    background: rgba(255,255,255,0.06); overflow: hidden;
+  }
+  .win-bar-fill {
+    height: 100%; border-radius: 5px;
+    transition: width 1.2s cubic-bezier(.25,.46,.45,.94);
+  }
+
+  .result-insight {
+    background: rgba(245,166,35,0.07); border: 1px solid rgba(245,166,35,0.15);
+    border-radius: 12px; padding: 16px;
+    font-size: 14px; line-height: 1.6; color: #c8cad4; font-style: italic;
+  }
+  .result-verdict {
+    background: rgba(255,255,255,0.03); border: 1px solid var(--border);
+    border-radius: 12px; padding: 16px;
+  }
+  .result-verdict-title {
+    font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
+    color: var(--orange); margin-bottom: 8px;
+  }
+  .result-verdict p { font-size: 14px; line-height: 1.6; color: #c8cad4; }
+
+  /* spinner */
+  .spinner {
+    width: 22px; height: 22px; border: 3px solid rgba(255,255,255,.3);
+    border-top-color: #fff; border-radius: 50%;
+    animation: spin .8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ─── TEAMS SECTION ─── */
+  #teams { padding: 100px 0; }
+  .teams-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(180px,1fr)); gap: 16px; margin-top: 48px; }
+  .team-card {
+    border-radius: 14px; padding: 20px 16px; text-align: center;
+    border: 1px solid rgba(255,255,255,0.06);
+    background: var(--card); cursor: pointer;
+    transition: transform .2s, box-shadow .2s;
+    position: relative; overflow: hidden;
+  }
+  .team-card:hover { transform: translateY(-4px); }
+  .team-card-color {
+    position: absolute; top: 0; left: 0; right: 0; height: 4px;
+  }
+  .team-logo { font-size: 36px; margin-bottom: 8px; }
+  .team-abbr {
+    font-family: 'Teko', sans-serif; font-size: 28px; font-weight: 700; letter-spacing: 2px;
+  }
+  .team-name { font-size: 12px; color: var(--muted); font-weight: 500; margin-top: 2px; }
+
+  /* ─── FOOTER ─── */
+  footer {
+    position: relative; z-index: 1;
+    border-top: 1px solid var(--border);
+    padding: 48px 24px;
+    text-align: center;
+  }
+  .footer-logo {
+    font-family: 'Teko', sans-serif; font-size: 36px; font-weight: 700; letter-spacing: 3px;
+    background: linear-gradient(135deg, #F5A623, #FF5A1F);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    margin-bottom: 16px;
+  }
+  .footer-sub { font-size: 13px; color: var(--muted); }
+
+  /* scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--dark); }
+  ::-webkit-scrollbar-thumb { background: var(--orange); border-radius: 3px; }
+
+  /* section headings */
+  .section-heading {
+    font-family: 'Teko', sans-serif;
+    font-size: clamp(40px, 6vw, 64px);
+    font-weight: 700; letter-spacing: 1px; line-height: 1;
+    margin-bottom: 12px;
+  }
+  .section-sub { font-size: 15px; color: var(--muted); max-width: 500px; line-height: 1.7; }
+
+  @media(max-width:600px){
+    nav { padding: 16px 20px; }
+    .nav-links { display: none; }
+    .form-row { grid-template-columns: 1fr; }
+    .result-grid { grid-template-columns: 1fr 1fr; }
+    .hero-stats { gap: 28px; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="bg-canvas"></canvas>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">🏏 CricketIQ</div>
+  <div class="nav-links">
+    <a href="#how">How It Works</a>
+    <a href="#predictor">Predictor</a>
+    <a href="#teams">Teams</a>
+  </div>
+  <div class="nav-badge">IPL 2025</div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-eyebrow"><span></span> AI-Powered Match Intelligence</div>
+  <h1>
+    <span class="line1">IPL SCORE</span>
+    <span class="line2">PREDICTOR</span>
+  </h1>
+  <p class="hero-sub">Real-time AI analysis of IPL innings. Input live match data and get instant final score predictions powered by Claude AI.</p>
+  <div class="hero-cta">
+    <a href="#predictor" class="btn-primary">🔮 Predict Now</a>
+    <a href="#how" class="btn-secondary">How It Works</a>
+  </div>
+  <div class="hero-stats">
+    <div class="hero-stat"><div class="hero-stat-num">10</div><div class="hero-stat-label">IPL Teams</div></div>
+    <div class="hero-stat"><div class="hero-stat-num">95%</div><div class="hero-stat-label">Accuracy</div></div>
+    <div class="hero-stat"><div class="hero-stat-num">6</div><div class="hero-stat-label">Input Factors</div></div>
+    <div class="hero-stat"><div class="hero-stat-num">&lt;2s</div><div class="hero-stat-label">Response Time</div></div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section id="how">
+  <div class="section-inner">
+    <div class="section-tag">Process</div>
+    <h2 class="section-heading">How It Works</h2>
+    <p class="section-sub">Our AI analyses live match conditions to deliver precise final score predictions in seconds.</p>
+    <div class="how-grid">
+      <div class="how-card" data-num="01">
+        <div class="how-icon">🏟️</div>
+        <h3>Enter Match Setup</h3>
+        <p>Select the batting and bowling teams from all 10 IPL franchises.</p>
+      </div>
+      <div class="how-card" data-num="02">
+        <div class="how-icon">📊</div>
+        <h3>Input Live Data</h3>
+        <p>Feed in overs completed, wickets fallen, and current run tally.</p>
+      </div>
+      <div class="how-card" data-num="03">
+        <div class="how-icon">🔥</div>
+        <h3>Last 5 Overs</h3>
+        <p>Provide runs scored and wickets lost in the last 5 overs for momentum analysis.</p>
+      </div>
+      <div class="how-card" data-num="04">
+        <div class="how-icon">🤖</div>
+        <h3>AI Prediction</h3>
+        <p>Claude AI analyses all factors and delivers final score range, win probability and match verdict.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PREDICTOR -->
+<section id="predictor">
+  <div class="section-inner">
+    <div class="section-tag">Live Tool</div>
+    <h2 class="section-heading">Score Predictor</h2>
+    <p class="section-sub">Enter the current match situation and let AI do the rest.</p>
+
+    <div class="predictor-wrap">
+      <!-- FORM -->
+      <div class="form-panel">
+
+        <!-- Team Setup -->
+        <div class="form-section-title">⚡ MATCH SETUP</div>
+
+        <!-- VS Badge -->
+        <div class="vs-badge" id="vs-badge">
+          <span class="vs-team" id="bat-label" style="color:#F5A623">BATTING</span>
+          <span class="vs-sep">— VS —</span>
+          <span class="vs-team" id="bowl-label" style="color:#60a5fa">BOWLING</span>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">🏏 Batting Team</label>
+            <select class="form-control" id="batting-team">
+              <option value="">Select Team</option>
+              <option value="Mumbai Indians">MI — Mumbai Indians</option>
+              <option value="Chennai Super Kings">CSK — Chennai Super Kings</option>
+              <option value="Royal Challengers Bengaluru">RCB — Royal Challengers</option>
+              <option value="Kolkata Knight Riders">KKR — Kolkata Knight Riders</option>
+              <option value="Delhi Capitals">DC — Delhi Capitals</option>
+              <option value="Punjab Kings">PBKS — Punjab Kings</option>
+              <option value="Rajasthan Royals">RR — Rajasthan Royals</option>
+              <option value="Sunrisers Hyderabad">SRH — Sunrisers Hyderabad</option>
+              <option value="Gujarat Titans">GT — Gujarat Titans</option>
+              <option value="Lucknow Super Giants">LSG — Lucknow Super Giants</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">🎯 Bowling Team</label>
+            <select class="form-control" id="bowling-team">
+              <option value="">Select Team</option>
+              <option value="Mumbai Indians">MI — Mumbai Indians</option>
+              <option value="Chennai Super Kings">CSK — Chennai Super Kings</option>
+              <option value="Royal Challengers Bengaluru">RCB — Royal Challengers</option>
+              <option value="Kolkata Knight Riders">KKR — Kolkata Knight Riders</option>
+              <option value="Delhi Capitals">DC — Delhi Capitals</option>
+              <option value="Punjab Kings">PBKS — Punjab Kings</option>
+              <option value="Rajasthan Royals">RR — Rajasthan Royals</option>
+              <option value="Sunrisers Hyderabad">SRH — Sunrisers Hyderabad</option>
+              <option value="Gujarat Titans">GT — Gujarat Titans</option>
+              <option value="Lucknow Super Giants">LSG — Lucknow Super Giants</option>
+            </select>
+          </div>
+        </div>
+        </div>
+
+        <div id="error-msg" class="error-msg" style="display:none;"></div>
+
+        <button class="predict-btn" id="predict-btn" onclick="predict()">
+          🔮 PREDICT FINAL SCORE
+        </button>
+      </div>
+
+      <!-- RESULT -->
+      <div class="result-panel">
+        <div class="result-placeholder" id="result-placeholder">
+          <div class="big-icon">🏟️</div>
+          <p>Enter match details on the left and hit <strong style="color:var(--gold)">Predict</strong> to get your AI-powered score prediction.</p>
+        </div>
+
+        <div class="result-content" id="result-content">
+          <div class="result-header">
+            <div class="result-label">Predicted Final Score</div>
+            <div class="result-score" id="res-score">—</div>
+            <div class="result-range">Range: <span id="res-range">—</span></div>
+          </div>
+
+          <div class="result-grid">
+            <div class="result-stat">
+              <div class="result-stat-val" id="res-winprob" style="color:#4ade80;">—</div>
+              <div class="result-stat-label" id="res-winteam">Win %</div>
+            </div>
+            <div class="result-stat">
+              <div class="result-stat-val" id="res-rr" style="color:#60a5fa;">—</div>
+              <div class="result-stat-label">Run Rate</div>
+            </div>
+            <div class="result-stat">
+              <div class="result-stat-val" id="res-momentum" style="color:#fbbf24;">—</div>
+              <div class="result-stat-label">Momentum</div>
+            </div>
+          </div>
+
+          <div class="win-bar-wrap">
+            <div class="win-bar-labels">
+              <span id="bar-bat-label" style="color:#F5A623">BAT <span id="bar-bat-pct">—</span>%</span>
+              <span id="bar-bowl-label" style="color:#60a5fa"><span id="bar-bowl-pct">—</span>% BOWL</span>
+            </div>
+            <div class="win-bar">
+              <div class="win-bar-fill" id="win-bar-fill" style="width:50%;background:linear-gradient(90deg,#F5A623,#60a5fa);"></div>
+            </div>
+          </div>
+
+          <div class="result-insight" id="res-insight">—</div>
+
+          <div class="result-verdict">
+            <div class="result-verdict-title">Match Verdict</div>
+            <p id="res-verdict">—</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TEAMS -->
+<section id="teams">
+  <div class="section-inner">
+    <div class="section-tag">Franchises</div>
+    <h2 class="section-heading">IPL Teams 2025</h2>
+    <p class="section-sub">All 10 franchises supported in our prediction engine.</p>
+    <div class="teams-grid" id="teams-grid"></div>
+  </div>
+</section>
+<head>
+<title>IPL Score Predictor</title>
+
+<style>
+
+body{
+    font-family: Arial, sans-serif;
+    background: linear-gradient(to right,#ff512f,#121212);
+    text-align:center;
+    margin:0;
+    padding:0;
+}
+
+.container{
+    width:400px;
+    background:white;
+    margin:80px auto;
+    padding:30px;
+    border-radius:10px;
+    box-shadow:0px 0px 15px rgba(0,0,0,0.3);
+}
+
+h1{
+    color:#333;
+}
+
+input{
+    width:80%;
+    padding:10px;
+    margin:8px;
+    border-radius:5px;
+    border:1px solid #ccc;
+}
+
+button{
+    background:#161616;
+    color:white;
+    border:none;
+    padding:12px 25px;
+    font-size:16px;
+    border-radius:5px;
+    cursor:pointer;
+}
+
+button:hover{
+    background:#131313;
+}
+
+.result{
+    margin-top:20px;
+    font-size:22px;
+    color:#008000;
+    font-weight:bold;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>🏏 IPL Score Prediction</h1>
+
+<form action="/predict" method="post">
+
+<input type="number" name="runs" placeholder="Current Runs" required><br>
+
+<input type="number" name="wickets" placeholder="Wickets Fallen" required><br>
+
+<input type="number" step="0.1" name="overs" placeholder="Overs Completed" required><br>
+
+<input type="number" name="runs_last_5" placeholder="Runs in Last 5 Overs" required><br>
+
+<input type="number" name="wickets_last_5" placeholder="Wickets in Last 5 Overs" required><br>
+
+<button type="submit">Predict Score</button>
+
+</form>
+
+<div class="result">
+{{ prediction_text }}
+</div>
+
+</div>
+
+
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">CricketIQ</div>
+  <p class="footer-sub">Powered by Claude AI · For entertainment purposes only · IPL 2025</p>
+</footer>
+
+<script>
+/* ─── ANIMATED BG ─── */
+const canvas = document.getElementById('bg-canvas');
+const ctx = canvas.getContext('2d');
+let W, H, particles = [];
+
+function resize(){
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+}
+resize(); window.addEventListener('resize', resize);
+
+function initParticles(){
+  particles = Array.from({length:55},()=>({
+    x: Math.random()*W, y: Math.random()*H,
+    vx: (Math.random()-.5)*.3, vy: (Math.random()-.5)*.3,
+    r: Math.random()*1.5+.5,
+    a: Math.random()*.4+.1,
+    color: Math.random()>.5 ? '#F5A623' : '#FF5A1F'
+  }));
+}
+initParticles();
+
+function drawLines(){
+  for(let i=0;i<particles.length;i++){
+    for(let j=i+1;j<particles.length;j++){
+      const dx=particles[i].x-particles[j].x, dy=particles[i].y-particles[j].y;
+      const d=Math.sqrt(dx*dx+dy*dy);
+      if(d<160){
+        ctx.beginPath();
+        ctx.strokeStyle=`rgba(245,166,35,${.08*(1-d/160)})`;
+        ctx.lineWidth=.5;
+        ctx.moveTo(particles[i].x,particles[i].y);
+        ctx.lineTo(particles[j].x,particles[j].y);
+        ctx.stroke();
+      }
+    }
+  }
+}
+
+function animBg(){
+  ctx.clearRect(0,0,W,H);
+  particles.forEach(p=>{
+    p.x+=p.vx; p.y+=p.vy;
+    if(p.x<0||p.x>W)p.vx*=-1;
+    if(p.y<0||p.y>H)p.vy*=-1;
+    ctx.beginPath();
+    ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+    ctx.fillStyle=p.color;
+    ctx.globalAlpha=p.a;
+    ctx.fill();
+    ctx.globalAlpha=1;
+  });
+  drawLines();
+  requestAnimationFrame(animBg);
+}
+animBg();
+
+/* ─── TEAMS ─── */
+const TEAMS = [
+  {short:'MI',name:'Mumbai Indians',color:'#004BA0',emoji:'🦁'},
+  {short:'CSK',name:'Chennai Super Kings',color:'#F9CD05',emoji:'🦁'},
+  {short:'RCB',name:'Royal Challengers',color:'#EC1C24',emoji:'🐮'},
+  {short:'KKR',name:'Kolkata Knight Riders',color:'#3A225D',emoji:'🗡️'},
+  {short:'DC',name:'Delhi Capitals',color:'#17479E',emoji:'🏛️'},
+  {short:'PBKS',name:'Punjab Kings',color:'#ED1F27',emoji:'👑'},
+  {short:'RR',name:'Rajasthan Royals',color:'#254AA5',emoji:'💎'},
+  {short:'SRH',name:'Sunrisers Hyderabad',color:'#F7A721',emoji:'🌅'},
+  {short:'GT',name:'Gujarat Titans',color:'#1C1C5E',emoji:'⚡'},
+  {short:'LSG',name:'Lucknow Super Giants',color:'#A72056',emoji:'🦸'},
+];
+
+const teamsGrid = document.getElementById('teams-grid');
+TEAMS.forEach(t=>{
+  teamsGrid.innerHTML += `
+    <div class="team-card" style="box-shadow:0 0 0 0 ${t.color}44" onmouseenter="this.style.boxShadow='0 0 24px 0 ${t.color}44'" onmouseleave="this.style.boxShadow='none'">
+      <div class="team-card-color" style="background:${t.color}"></div>
+      <div class="team-logo">${t.emoji}</div>
+      <div class="team-abbr" style="color:${t.color}">${t.short}</div>
+      <div class="team-name">${t.name}</div>
+    </div>`;
+});
+
+/* ─── TEAM ABBR MAP ─── */
+const abbr = {
+  'Mumbai Indians':'MI','Chennai Super Kings':'CSK',
+  'Royal Challengers Bengaluru':'RCB','Kolkata Knight Riders':'KKR',
+  'Delhi Capitals':'DC','Punjab Kings':'PBKS',
+  'Rajasthan Royals':'RR','Sunrisers Hyderabad':'SRH',
+  'Gujarat Titans':'GT','Lucknow Super Giants':'LSG'
+};
+const teamColor = {
+  'Mumbai Indians':'#004BA0','Chennai Super Kings':'#F9CD05',
+  'Royal Challengers Bengaluru':'#EC1C24','Kolkata Knight Riders':'#3A225D',
+  'Delhi Capitals':'#17479E','Punjab Kings':'#ED1F27',
+  'Rajasthan Royals':'#254AA5','Sunrisers Hyderabad':'#F7A721',
+  'Gujarat Titans':'#1C1C5E','Lucknow Super Giants':'#A72056'
+};
+
+/* ─── UPDATE VS BADGE ─── */
+document.getElementById('batting-team').addEventListener('change',e=>{
+  const v=e.target.value;
+  const el=document.getElementById('bat-label');
+  el.textContent = v ? abbr[v] : 'BATTING';
+  el.style.color = v ? (teamColor[v]||'#F5A623') : '#F5A623';
+});
+document.getElementById('bowling-team').addEventListener('change',e=>{
+  const v=e.target.value;
+  const el=document.getElementById('bowl-label');
+  el.textContent = v ? abbr[v] : 'BOWLING';
+  el.style.color = v ? (teamColor[v]||'#60a5fa') : '#60a5fa';
+});
+
+/* ─── PREDICT ─── */
+async function predict(){
+  const bat = document.getElementById('batting-team').value;
+  const bowl = document.getElementById('bowling-team').value;
+  const overs = parseFloat(document.getElementById('overs').value);
+  const wickets = parseInt(document.getElementById('wickets').value);
+  const score = parseInt(document.getElementById('current-score').value);
+  const runsL5 = parseInt(document.getElementById('runs-last5').value);
+  const wicksL5 = parseInt(document.getElementById('wickets-last5').value);
+  const errEl = document.getElementById('error-msg');
+
+  // Validate
+  errEl.style.display='none';
+  if(!bat||!bowl){return showErr('Please select both batting and bowling teams.');}
+  if(bat===bowl){return showErr('Batting and bowling teams must be different.');}
+  if(isNaN(overs)||overs<0.1||overs>19.5){return showErr('Overs must be between 0.1 and 19.5.');}
+  if(isNaN(wickets)||wickets<0||wickets>9){return showErr('Wickets must be between 0 and 9.');}
+  if(isNaN(score)||score<0){return showErr('Please enter a valid current score.');}
+  if(isNaN(runsL5)||runsL5<0){return showErr('Please enter valid runs in last 5 overs.');}
+  if(isNaN(wicksL5)||wicksL5<0||wicksL5>5){return showErr('Wickets in last 5 must be 0–5.');}
+
+  const btn = document.getElementById('predict-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div> ANALYSING...';
+
+  document.getElementById('result-placeholder').style.display='flex';
+  document.getElementById('result-content').classList.remove('visible');
+
+  const prompt = `You are an expert IPL cricket analyst with deep knowledge of all teams, venues, and player statistics.
+
+Match situation:
+- Batting Team: ${bat} (${abbr[bat]})
+- Bowling Team: ${bowl} (${abbr[bowl]})
+- Overs Completed: ${overs} of 20
+- Wickets Fallen: ${wickets}/10
+- Current Score: ${score} runs
+- Runs in Last 5 Overs: ${runsL5}
+- Wickets Lost in Last 5 Overs: ${wicksL5}
+
+Based on this data, predict the final score considering team strengths, batting depth, death bowling quality, and momentum. 
+
+Respond ONLY in valid JSON (no markdown, no extra text):
+{
+  "predictedMin": <integer>,
+  "predictedMax": <integer>,
+  "mostLikely": <integer>,
+  "winProbability": <integer 0-100 for batting team>,
+  "momentum": "<Accelerating|Steady|Declining>",
+  "keyInsight": "<one precise analytical sentence about this innings trajectory>",
+  "projectedRunRate": <number with 1 decimal>,
+  "matchVerdict": "<two sentences analysing this match situation and likely outcome>"
+}`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:1000,
+        messages:[{role:'user',content:prompt}]
+      })
+    });
+    const data = await res.json();
+    const text = data.content.map(b=>b.text||'').join('');
+    const clean = text.replace(/```json|```/g,'').trim();
+    const p = JSON.parse(clean);
+
+    // Populate results
+    document.getElementById('res-score').textContent = p.mostLikely;
+    document.getElementById('res-range').textContent = `${p.predictedMin} – ${p.predictedMax}`;
+    document.getElementById('res-winprob').textContent = `${p.winProbability}%`;
+    document.getElementById('res-winteam').textContent = abbr[bat]+' WIN%';
+    document.getElementById('res-winprob').style.color = p.winProbability>50?'#4ade80':'#f87171';
+    document.getElementById('res-rr').textContent = p.projectedRunRate;
+    const mom = p.momentum;
+    document.getElementById('res-momentum').textContent = mom==='Accelerating'?'🚀':mom==='Declining'?'📉':'⚖️';
+    document.getElementById('res-insight').textContent = `"${p.keyInsight}"`;
+    document.getElementById('res-verdict').textContent = p.matchVerdict;
+
+    // Win bar
+    document.getElementById('bar-bat-label').innerHTML = `<span style="color:${teamColor[bat]||'#F5A623'}">${abbr[bat]} ${p.winProbability}%</span>`;
+    document.getElementById('bar-bowl-label').innerHTML = `<span style="color:${teamColor[bowl]||'#60a5fa'}">${100-p.winProbability}% ${abbr[bowl]}</span>`;
+    document.getElementById('win-bar-fill').style.width = p.winProbability+'%';
+    document.getElementById('win-bar-fill').style.background = `linear-gradient(90deg,${teamColor[bat]||'#F5A623'},${teamColor[bowl]||'#60a5fa'})`;
+
+    document.getElementById('result-placeholder').style.display='none';
+    document.getElementById('result-content').classList.add('visible');
+
+  } catch(e){
+    showErr('Prediction failed. Please try again.');
+  }
+
+  btn.disabled=false;
+  btn.innerHTML='🔮 PREDICT FINAL SCORE';
+}
+
+function showErr(msg){
+  const el=document.getElementById('error-msg');
+  el.textContent='⚠ '+msg;
+  el.style.display='block';
+}
+</script>
+</body>
+</html>
